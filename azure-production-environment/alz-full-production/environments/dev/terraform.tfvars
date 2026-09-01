@@ -1,14 +1,14 @@
 # Fill in your DEV subscription ID. Passwords come from TF_VAR_ env vars, not here.
-subscription_id = "00000000-0000-0000-0000-000000000000"
 
-org         = "exco"
+
+org         = "test-env"
 environment = "dev"
-location    = "eastus"
+location    = "centralus"
 owner       = "platform-team"
 
 # Small + cheap for a development environment
-vm_size           = "Standard_B2s"
-aks_vm_size       = "Standard_B2s"
+vm_size           = "Standard_D2s_v5"
+aks_vm_size       = "Standard_D2s_v5"
 aks_min_count     = 1
 aks_max_count     = 2
 web_app_sku       = "B1"
