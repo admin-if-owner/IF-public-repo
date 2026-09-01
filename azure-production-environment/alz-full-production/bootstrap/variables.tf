@@ -6,11 +6,11 @@ variable "subscription_id" {
 variable "prefix" {
   description = "Short lowercase org prefix used to name state resources (letters/numbers only)."
   type        = string
-  default     = "exco"
+  default     = "test-env"
 }
 
 variable "location" {
   description = "Azure region for the state storage account."
   type        = string
-  default     = "eastus"
+  default     = "centralus"
 }
