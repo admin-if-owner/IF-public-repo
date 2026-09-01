@@ -1,8 +1,4 @@
 # ---- Identity / global ----
-variable "subscription_id" {
-  description = "Azure subscription ID for this environment."
-  type        = string
-}
 variable "org" {
   description = "Short lowercase org code used in names (letters/numbers only)."
   type        = string
