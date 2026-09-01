@@ -1,9 +1,9 @@
 # Fill in your PROD subscription ID. Passwords come from TF_VAR_ env vars, not here.
 subscription_id = "00000000-0000-0000-0000-000000000000"
 
-org         = "exco"
+org         = "test-env"
 environment = "prod"
-location    = "eastus"
+location    = "centralus"
 owner       = "platform-team"
 
 # Larger + resilient for production, with room to scale out
