@@ -10,10 +10,6 @@
 #      - AZURE_CLIENT_ID:       App registration (service principal) client ID
 #      - AZURE_TENANT_ID:       Azure AD tenant ID
 #      - AZURE_SUBSCRIPTION_ID: Target Azure subscription ID
-#      - TF_BACKEND_RESOURCE_GROUP:  State storage resource group
-#      - TF_BACKEND_STORAGE_ACCOUNT: State storage account name
-#      - TF_BACKEND_CONTAINER:       State blob container
-#      - TF_BACKEND_KEY:             State file key/name
 #   3. Create the Terraform state storage account (see README.md)
 
 name: "Terraform - Prod"
@@ -141,14 +137,7 @@ jobs:
 
       - name: Terraform Init
         id: init
-        run: |
-          terraform init \
-            -backend-config="use_oidc=true" \
-            -backend-config="use_azuread_auth=true" \
-            -backend-config="resource_group_name=${{ secrets.TF_BACKEND_RESOURCE_GROUP }}" \
-            -backend-config="storage_account_name=${{ secrets.TF_BACKEND_STORAGE_ACCOUNT }}" \
-            -backend-config="container_name=${{ secrets.TF_BACKEND_CONTAINER }}" \
-            -backend-config="key=${{ secrets.TF_BACKEND_KEY }}"
+        run: terraform init -input=false
 
       - name: Terraform Plan
         id: plan
@@ -240,14 +229,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="use_oidc=true" \
-            -backend-config="use_azuread_auth=true" \
-            -backend-config="resource_group_name=${{ secrets.TF_BACKEND_RESOURCE_GROUP }}" \
-            -backend-config="storage_account_name=${{ secrets.TF_BACKEND_STORAGE_ACCOUNT }}" \
-            -backend-config="container_name=${{ secrets.TF_BACKEND_CONTAINER }}" \
-            -backend-config="key=${{ secrets.TF_BACKEND_KEY }}"
+        run: terraform init -input=false
 
       - name: Terraform Plan
         run: terraform plan -input=false -out=tfplan
