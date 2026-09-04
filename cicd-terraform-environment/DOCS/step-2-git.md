@@ -39,3 +39,4 @@ Then when it completes and creates the object in azure, we then need to assign a
 
 *updated az_ad_app_registration to include role assignment*
 
+
