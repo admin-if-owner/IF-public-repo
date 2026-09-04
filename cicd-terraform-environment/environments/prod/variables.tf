@@ -17,7 +17,7 @@ variable "subscription_id" {
 variable "location" {
   description = "The Azure region where resources will be deployed."
   type        = string
-  default     = "eastus2"
+  default     = "centralus"
 
   validation {
     condition     = contains(["eastus", "eastus2", "westus2", "westus3", "centralus", "northeurope", "westeurope", "uksouth", "ukwest"], var.location)
