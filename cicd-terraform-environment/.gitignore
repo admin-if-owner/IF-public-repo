@@ -6,6 +6,7 @@ crash.log
 # Local provider plugins and lock caches
 .terraform/
 .terraform.lock.hcl
+!.terraform.lock.hcl
 
 # Secret / environment-specific variable files
 *.auto.tfvars

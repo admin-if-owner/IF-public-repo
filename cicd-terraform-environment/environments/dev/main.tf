@@ -27,38 +27,43 @@ resource "azurerm_resource_group" "monitoring" {
 # --- Monitoring (deployed first so other modules can send diagnostics here) ---
 
 module "log_analytics" {
-  source = "../../azure-production-environment/alz-full-production/modules/monitoring"
+  source = "../../../azure-production-environment/alz-full-production/modules/monitoring"
 
   resource_group_name = azurerm_resource_group.monitoring.name
   location            = var.location
-  name_prefix         = local.name_prefix
-  retention_days      = var.log_retention_days
+  name                = "${local.name_prefix}-law"
+  retention_in_days   = var.log_retention_days
   tags                = local.common_tags
 }
 
 # --- Networking (hub-and-spoke topology) ---
 
 module "hub_network" {
-  source = "../../azure-production-environment/alz-full-production/modules/networking"
+  source = "../../../azure-production-environment/alz-full-production/modules/networking"
 
   resource_group_name = azurerm_resource_group.networking.name
   location            = var.location
-  name_prefix         = local.name_prefix
+  name                = "${local.name_prefix}-hub"
   address_space       = var.hub_vnet_address_space
-  tags                = local.common_tags
-
-  log_analytics_workspace_id = module.log_analytics.workspace_id
+  subnets = {
+    apps = {
+      address_prefixes = ["10.0.1.0/24"]
+    }
+    management = {
+      address_prefixes = ["10.0.2.0/24"]
+    }
+  }
+  tags = local.common_tags
 }
 
 # --- Security (Key Vault) ---
 
-module "key_vault" {
-  source = "../../azure-production-environment/alz-full-production/modules/security/key-vault"
+module "identity" {
+  source = "../../../azure-production-environment/alz-full-production/modules/identity"
 
+  prefix              = local.name_prefix
+  key_vault_name      = local.key_vault_name
   resource_group_name = azurerm_resource_group.security.name
   location            = var.location
-  name_prefix         = local.name_prefix
   tags                = local.common_tags
-
-  log_analytics_workspace_id = module.log_analytics.workspace_id
 }
