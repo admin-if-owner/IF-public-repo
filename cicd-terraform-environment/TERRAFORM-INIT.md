@@ -66,7 +66,7 @@ When you push to your repository, GitHub Actions will:
 ### Error: "resource_group_name not found"
 Make sure you ran `az_initial_storage_setup` script and the storage account exists:
 ```bash
-az storage account show --name stterraformstate83417ead --resource-group stterraformstate83417ead
+az storage account show --name stterraformstate83417ead --resource-group rg-terraform-state
 ```
 
 ### Error: "invalid subscription_id"

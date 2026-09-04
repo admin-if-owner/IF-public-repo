@@ -3,10 +3,14 @@
 *.tfstate.*
 *.tfvars
 !example.tfvars
+!cicd-terraform-environment/environments/dev/terraform.tfvars
+!cicd-terraform-environment/environments/prod/terraform.tfvars
 *.tfvars.json
 !example.tfvars.json
 .terraform/
 .terraform.lock.hcl
+!cicd-terraform-environment/environments/dev/.terraform.lock.hcl
+!cicd-terraform-environment/environments/prod/.terraform.lock.hcl
 crash.log
 override.tf
 override.tf.json

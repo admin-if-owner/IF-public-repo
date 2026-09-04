@@ -12,5 +12,6 @@ locals {
   )
 
   # Naming convention: {project}-{environment}
-  name_prefix = "${var.project_name}-${var.environment}"
+  name_prefix    = "${var.project_name}-${var.environment}"
+  key_vault_name = "${replace(local.name_prefix, "-", "")}kv"
 }

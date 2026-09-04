@@ -7,12 +7,12 @@ output "hub_vnet_id" {
 
 output "key_vault_id" {
   description = "Resource ID of the Key Vault."
-  value       = module.key_vault.key_vault_id
+  value       = module.identity.key_vault_id
 }
 
 output "key_vault_name" {
   description = "Name of the Key Vault."
-  value       = module.key_vault.key_vault_name
+  value       = local.key_vault_name
 }
 
 output "log_analytics_workspace_id" {
