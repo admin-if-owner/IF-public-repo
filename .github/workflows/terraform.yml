@@ -1,120 +1,104 @@
-name: 'Terraform Plan/Apply'
+# .github/workflows/terraform.yml - Terraform CI/CD Pipeline (prod)
+#
+# This workflow implements a safe Terraform deployment process:
+#   - On Pull Request: Runs fmt check, validate, and plan (posts plan as PR comment)
+#   - On Merge to main: Applies the planned changes to Azure
+#
+# Prerequisites:
+#   1. Configure OIDC federation between GitHub and Azure AD
+#   2. Set the following GitHub repository secrets:
+#      - AZURE_CLIENT_ID:       App registration (service principal) client ID
+#      - AZURE_TENANT_ID:       Azure AD tenant ID
+#      - AZURE_SUBSCRIPTION_ID: Target Azure subscription ID
+#      - TF_BACKEND_RESOURCE_GROUP:  State storage resource group
+#      - TF_BACKEND_STORAGE_ACCOUNT: State storage account name
+#      - TF_BACKEND_CONTAINER:       State blob container
+#      - TF_BACKEND_KEY:             State file key/name
+#   3. Create the Terraform state storage account (see README.md)
+
+name: "Terraform - Prod"
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - "cicd-terraform-environment/environments/prod/**"
+      - ".github/workflows/terraform.yml"
   pull_request:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - "cicd-terraform-environment/environments/prod/**"
+      - ".github/workflows/terraform.yml"
 
-# Required for OIDC authentication to Azure
+# Ensure only one workflow runs at a time per branch
+# This prevents concurrent Terraform operations that could corrupt state
+concurrency:
+  group: terraform-prod-${{ github.ref }}
+  cancel-in-progress: false
+
+# OIDC requires these permissions for the GitHub token
 permissions:
-  id-token: write
-  contents: read
-  pull-requests: write
+  id-token: write       # Required for OIDC authentication to Azure
+  contents: read        # Required to checkout the repository
+  pull-requests: write  # Required to post plan comments on PRs
+
+# All Terraform commands run inside cicd-terraform-environment/environments/prod/
+defaults:
+  run:
+    working-directory: cicd-terraform-environment/environments/prod
 
 env:
-  ARM_CLIENT_ID: "${{ secrets.AZURE_CLIENT_ID }}"
-  ARM_SUBSCRIPTION_ID: "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
-  ARM_TENANT_ID: "${{ secrets.AZURE_TENANT_ID }}"
-  TF_VAR_subscription_id: "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
   TF_VERSION: "1.9.0"
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_USE_OIDC: "true"
+  TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  TF_IN_AUTOMATION: "true"
 
 jobs:
-  # ---------- PLAN ----------
-  terraform-plan:
-    name: 'Terraform Plan'
+  # --------------------------------------------------------------------------
+  # FORMAT CHECK
+  # --------------------------------------------------------------------------
+  fmt:
+    name: "Format Check"
     runs-on: ubuntu-latest
-    env:
-      ARM_SKIP_PROVIDER_REGISTRATION: true
-    outputs:
-      tfplanExitCode: ${{ steps.tf-plan.outputs.exitcode }}
-
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
-          terraform_wrapper: false
-
-      - name: Terraform Init
-        run: terraform init
 
       - name: Terraform Format Check
-        run: terraform fmt -check -recursive
+        id: fmt
+        run: terraform fmt -check -recursive -diff
+        continue-on-error: true
 
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Terraform Plan
-        id: tf-plan
-        run: |
-          export exitcode=0
-          terraform plan -detailed-exitcode -no-color -out tfplan || export exitcode=$?
-          echo "exitcode=$exitcode" >> $GITHUB_OUTPUT
-          if [ $exitcode -eq 1 ]; then
-            echo "Terraform Plan Failed!"
-            exit 1
-          else
-            exit 0
-          fi
-
-      # Save plan artifact so apply uses the exact same plan
-      - name: Upload Terraform Plan
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfplan
-          path: tfplan
-
-      # Post plan output as PR comment
-      - name: Create Plan Output
-        id: tf-plan-string
-        run: |
-          TERRAFORM_PLAN=$(terraform show -no-color tfplan)
-          delimiter="$(openssl rand -hex 8)"
-          echo "summary<<${delimiter}" >> $GITHUB_OUTPUT
-          echo "## Terraform Plan Output" >> $GITHUB_OUTPUT
-          echo "<details><summary>Click to expand</summary>" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo '```' >> $GITHUB_OUTPUT
-          echo "$TERRAFORM_PLAN" >> $GITHUB_OUTPUT
-          echo '```' >> $GITHUB_OUTPUT
-          echo "</details>" >> $GITHUB_OUTPUT
-          echo "${delimiter}" >> $GITHUB_OUTPUT
-
-      - name: Post Plan to PR
-        if: github.event_name == 'pull_request'
+      - name: Post format failure comment
+        if: steps.fmt.outcome == 'failure' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
-        env:
-          SUMMARY: "${{ steps.tf-plan-string.outputs.summary }}"
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: process.env.SUMMARY
+              body: '## :x: Terraform Format Check Failed\n\nRun `terraform fmt -recursive` in `environments/prod/` locally and commit the changes.'
             })
 
-      - name: Post Plan to Job Summary
-        env:
-          SUMMARY: ${{ steps.tf-plan-string.outputs.summary }}
-        run: echo "$SUMMARY" >> $GITHUB_STEP_SUMMARY
-
-  # ---------- APPLY ----------
-  terraform-apply:
-    name: 'Terraform Apply'
-    # Only runs on main AND when there are changes (exit code 2)
-    if: github.ref == 'refs/heads/main' && needs.terraform-plan.outputs.tfplanExitCode == 2
+  # --------------------------------------------------------------------------
+  # VALIDATE
+  # --------------------------------------------------------------------------
+  validate:
+    name: "Validate"
     runs-on: ubuntu-latest
-    environment: production  # Uses the GitHub environment with optional protection rules
-    needs: [terraform-plan]
-
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Terraform
@@ -122,13 +106,147 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Terraform Init
-        run: terraform init
+      - name: Terraform Init (validation only)
+        run: terraform init -backend=false
 
-      - name: Download Plan
-        uses: actions/download-artifact@v4
+      - name: Terraform Validate
+        run: terraform validate
+
+  # --------------------------------------------------------------------------
+  # PLAN
+  # --------------------------------------------------------------------------
+  plan:
+    name: "Plan"
+    runs-on: ubuntu-latest
+    needs: [fmt, validate]
+    if: github.event_name == 'pull_request'
+    outputs:
+      plan_exit_code: ${{ steps.plan.outputs.exitcode }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          name: tfplan
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: true
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init
+        id: init
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.TF_BACKEND_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ secrets.TF_BACKEND_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ secrets.TF_BACKEND_CONTAINER }}" \
+            -backend-config="key=${{ secrets.TF_BACKEND_KEY }}"
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -detailed-exitcode -input=false -out=tfplan
+        continue-on-error: true
+
+      - name: Upload plan artifact
+        if: steps.plan.outputs.exitcode == '2'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ github.event.pull_request.number }}
+          path: cicd-terraform-environment/environments/prod/tfplan
+          retention-days: 5
+
+      - name: Post plan comment on PR
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          PLAN_OUTPUT: ${{ steps.plan.outputs.stdout }}
+          PLAN_EXIT_CODE: ${{ steps.plan.outputs.exitcode }}
+        with:
+          script: |
+            const planOutput = process.env.PLAN_OUTPUT || 'No plan output captured.';
+            const exitCode = process.env.PLAN_EXIT_CODE;
+
+            let status;
+            if (exitCode === '0') {
+              status = ':white_check_mark: **No changes.** Infrastructure is up-to-date.';
+            } else if (exitCode === '2') {
+              status = ':warning: **Changes detected.** Review the plan below before merging.';
+            } else {
+              status = ':x: **Plan failed.** See errors below.';
+            }
+
+            const maxLength = 60000;
+            let body = planOutput;
+            if (body.length > maxLength) {
+              body = body.substring(0, maxLength) + '\n\n... (truncated, see workflow logs for full output)';
+            }
+
+            const comment = `## Terraform Plan Results (prod)
+
+            ${status}
+
+            <details><summary>Show Plan Output</summary>
+
+            \`\`\`hcl
+            ${body}
+            \`\`\`
+
+            </details>
+
+            *Triggered by commit \`${context.sha.substring(0, 8)}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail on plan error
+        if: steps.plan.outputs.exitcode == '1'
+        run: exit 1
+
+  # --------------------------------------------------------------------------
+  # APPLY
+  # --------------------------------------------------------------------------
+  apply:
+    name: "Apply"
+    runs-on: ubuntu-latest
+    needs: [fmt, validate]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.TF_BACKEND_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ secrets.TF_BACKEND_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ secrets.TF_BACKEND_CONTAINER }}" \
+            -backend-config="key=${{ secrets.TF_BACKEND_KEY }}"
+
+      - name: Terraform Plan
+        run: terraform plan -input=false -out=tfplan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -input=false -auto-approve tfplan
