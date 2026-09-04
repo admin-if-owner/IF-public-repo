@@ -14,4 +14,12 @@ click save changes at the bottom
 
 the purpose of this rule is to get used to the common and best practice of pulling the entirety of the code, making your changes, then pushing the code changes to be approved by someone else before they can be pushed to production
 
+the next thing to do is to create the azure ad app registration, this is the azure applicaiton that will be used to connect to github to push our code over to azure to modify/update/remove things from our production/development envrironment 
+
+back in your code editor, go to your utilties folder and run the powershell/bash script for az_ad_app_registration
+
+Then when it completes and creates the object in auzre, we then need to assign azure permissions to your account(if this is your personal account, by default alot of roles are not applied and the global admin role thats applied at default doesnt not cover all the necessary permissions to do some things, if this is an active production enviornment, you might need to get with whoever runs your Azure environemtn to get added to the correct roles)
+
+to get the correct roles needed for the github actions, go into your utilites folder and run the az_ad_github_permissions script
+
 
