@@ -15,4 +15,38 @@ If using VSCode, grab some helpful not not required extensions(vscode extensions
     azure terraform (potentially renamed to Microsoft Terraform)
     GitHub actions
 
+Once you have the ground work scripts ran, the next step is to create 2 files, one being .gitignore file(doesnt push certain files to github, great for terraform, passwords/etc)
+the 2nd is a .env file, this is where you will hard code passwords, logins/etc, its not mandatory to store passwords and such here, but its nice to see them, should you need to change them, but you are welcome to store them elsewhere, like in an ansible secret vault, or github codespaces, just make sure to add the .nv file to the .gitignore so it doesnt get pushed to your repo, and is safely stored on your local machine
+
+make sure your .env and .ignore is directly under repo folder
+    example
+        ~/IF-public-repo
+            cicd-terraform-environment
+            .env
+            .gitignore
+and make just copy this below into your .gitignore file
+    # Terraform state (may contain secrets) - never commit
+    *.tfstate
+    *.tfstate.*
+    crash.log
+
+    # Local provider plugins and lock caches
+    .terraform/
+    .terraform.lock.hcl
+
+    # Secret / environment-specific variable files
+    *.auto.tfvars
+    secrets.tfvars
+    .env
+
+    # OS / editor noise
+    .DS_Store
+    Thumbs.db
+
+make sure you git commit the work so far by using commands
+    git add . # make sure you are doign this from the top repo folder, in my case its the cicd-terraform-environment folder
+    git commit -m "this is where you input the commit message of the work you have done, be as specific as you can, will help you later on if you have to recall something"
+    git push origin main
+
+The next steps will be in the DOC folder, where we will work on the next steps
 
