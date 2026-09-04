@@ -3,6 +3,8 @@
 # Get user inputs
 read -p "Enter the Github organization name: " GITHUB_ORG
 read -p "Enter the Github repository name: " GITHUB_REPO
+read -p "Enter the Github organization ID: " GITHUB_ORG_ID
+read -p "Enter the Github repository ID: " GITHUB_REPO_ID
 
 # Get the App ID from the first github-actions-terraform app (most recent)
 APP_ID=$(az ad app list --display-name "github-actions-terraform" --query "[0].appId" -o tsv 2>/dev/null)
@@ -17,7 +19,7 @@ echo "Using App ID: $APP_ID"
 az ad app federated-credential create --id "$APP_ID" --parameters '{
   "name": "github-actions-production",
   "issuer": "https://token.actions.githubusercontent.com",
-  "subject": "repo:'"$GITHUB_ORG"'/'"$GITHUB_REPO"':environment:production",
+  "subject": "repo:'"$GITHUB_ORG"'@'"$GITHUB_ORG_ID"'/'"$GITHUB_REPO"'@'"$GITHUB_REPO_ID"':environment:production",
   "audiences": ["api://AzureADTokenExchange"],
   "description": "Github Actions - production environment"
 }' 2>/dev/null
