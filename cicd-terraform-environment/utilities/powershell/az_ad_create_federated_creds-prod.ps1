@@ -1,5 +1,7 @@
 $GITHUB_ORG = Read-Host "Enter the Github organization name"
 $GITHUB_REPO = Read-Host "Enter the Github repository name"
+$GITHUB_ORG_ID = Read-Host "Enter the Github organization ID"
+$GITHUB_REPO_ID = Read-Host "Enter the Github repository ID"
 
 # Get the App ID from the first github-actions-terraform app
 $APP_ID = az ad app list --display-name "github-actions-terraform" --query "[0].appId" -o tsv 2>$null
@@ -13,7 +15,7 @@ Write-Host "Using App ID: $APP_ID"
 $params = @{
     name = "github-actions-production"
     issuer = "https://token.actions.githubusercontent.com"
-    subject = "repo:$GITHUB_ORG/$GITHUB_REPO:environment:production"
+    subject = "repo:$GITHUB_ORG@$GITHUB_ORG_ID/$GITHUB_REPO@$GITHUB_REPO_ID:environment:production"
     audiences = @("api://AzureADTokenExchange")
     description = "Github Actions - production environment"
 } | ConvertTo-Json 
