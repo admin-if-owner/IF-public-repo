@@ -1,0 +1,17 @@
+# Terraform state (may contain secrets) - never commit
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Local provider plugins and lock caches
+.terraform/
+.terraform.lock.hcl
+
+# Secret / environment-specific variable files
+*.auto.tfvars
+secrets.tfvars
+.env
+
+# OS / editor noise
+.DS_Store
+Thumbs.db

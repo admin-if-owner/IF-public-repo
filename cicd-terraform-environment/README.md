@@ -10,3 +10,9 @@ Once you have the repo, copy the repo into your code editor, whether VSCode, Git
 
 once copied to your code editor, run the tools_install script based on your operating system in the utilities folder to get the ground work started, it will install Azure CLI and terraform, if using powershell it will install winget first before grabbing the other tools
 
+If using VSCode, grab some helpful not not required extensions(vscode extensions can be malicous and understandable if you want to avoid them)
+    hashicorp terraform
+    azure terraform (potentially renamed to Microsoft Terraform)
+    GitHub actions
+
+
