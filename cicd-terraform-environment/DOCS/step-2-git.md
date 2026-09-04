@@ -8,11 +8,28 @@ in the left hand column click the branches tab and click the add branch ruleset
 
 call the ruleset what you want, for this one ive called it require-pull-request, there are some options to add to the default
 
-under the Target Branches, add a target for the whole branch, you can get more granular later on, and scroll down on the Branch Rules and click the box for require a pull request before merging and you will get asked for some configuraitons to that one rule, change the required approvals to 1 for now
+under the Target Branches, add a target for the whole branch, you can get more granular later on, and scroll down on the Branch Rules and click the box for require a pull request before merging and you will get asked for some configuraitons to that one rule, if you are a 1 person team, keep the required approvals at 0, if you set it to 1 another human must review the changes, you cannot review your own changes, so keep it at 0 till you have competant people to review
 
 click save changes at the bottom
 
 the purpose of this rule is to get used to the common and best practice of pulling the entirety of the code, making your changes, then pushing the code changes to be approved by someone else before they can be pushed to production
+
+once this rule is active, you cannot push to github the "normal way" 
+no more 
+    git add .
+    git commit -m "blah blah blah"
+    git push origin main
+now you will have to create a feature branch 
+    git checkout -b feature/name-of-whatever-you-added-or-changed
+    git add . #make sure you are in the correct folder to capture all your changes
+    git commit -m "stupidly specific description of what you did"
+    git push -u origin feature/name-of-whatever-you-added-or-changed
+then you have to log into github
+    click into your repo
+    you will see a green banner saying something about a pull request
+    click it, there are some additional places to set who can review and more
+    you can add some additional comments as a reviewer
+    then push it to main or cancel it and send it back to the coder with suggestions/changes
 
 the next thing to do is to create the azure ad app registration, this is the azure applicaiton that will be used to connect to github to push our code over to azure to modify/update/remove things from our production/development envrironment 
 
