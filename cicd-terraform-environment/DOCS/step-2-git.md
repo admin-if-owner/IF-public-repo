@@ -35,8 +35,7 @@ the next thing to do is to create the azure ad app registration, this is the azu
 
 back in your code editor, go to your utilties folder and run the powershell/bash script for az_ad_app_registration
 
-Then when it completes and creates the object in auzre, we then need to assign azure permissions to your account(if this is your personal account, by default alot of roles are not applied and the global admin role thats applied at default doesnt not cover all the necessary permissions to do some things, if this is an active production enviornment, you might need to get with whoever runs your Azure environemtn to get added to the correct roles)
+Then when it completes and creates the object in azure, we then need to assign azure permissions to your account(if this is your personal account, by default alot of roles are not applied and the global admin role thats applied at default doesnt not cover all the necessary permissions to do some things, if this is an active production enviornment, you might need to get with whoever runs your Azure environment to get added to the correct roles)
 
-to get the correct roles needed for the github actions, go into your utilites folder and run the az_ad_github_permissions script
-
+*updated az_ad_app_registration to include role assignment*
 
